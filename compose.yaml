@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:5151:5151"
+    volumes:
+      - tasks:/app/tasks
+
+volumes:
+  tasks:
