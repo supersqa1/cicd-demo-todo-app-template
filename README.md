@@ -17,7 +17,7 @@ app/
   requirements.txt    # Python dependencies
   __init__.py         # Python package marker
 Dockerfile            # Application image
-compose.yaml          # Local container and persistent task volume
+compose.yaml          # Local container and tasks/ bind mount
 .dockerignore         # Files excluded from the image build
 .gitignore            # Files excluded from Git
 README.md
@@ -30,8 +30,19 @@ README.md
 Install Docker with Compose (included in Docker Desktop). From the repository root:
 
 ```bash
+mkdir -p tasks
 docker compose up --build -d
 ```
+
+On native Linux (including our Ubuntu server), set the container user to your host user before starting it, so both Docker and your editor can write task files:
+
+```bash
+mkdir -p tasks
+export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
+docker compose up --build -d
+```
+
+Run those exports in each new Linux terminal used for Compose, as your regular user (not root). Docker Desktop on Mac/Windows uses the default non-root container user; the exports are not needed there.
 
 Open http://localhost:5151. The app is accessible only from your local machine.
 
@@ -40,7 +51,9 @@ docker compose logs -f   # View logs; Ctrl+C stops following logs
 docker compose down     # Stop and remove containers; keep task data
 ```
 
-Tasks are saved as text files, not in a database. Docker stores them in a named volume mounted at `/app/tasks`, so they survive container replacement. **`docker compose down --volumes` deletes that data.**
+Tasks are saved as text files in your project's `tasks/` folder, bind-mounted at `/app/tasks` inside the container. Create a task in the browser and its file appears in VS Code. Git ignores these files. They survive container replacement and even `docker compose down --volumes`; deleting files from `tasks/` deletes the data.
+
+If you previously used the named-volume version, its existing tasks stay in that old volume. This setup starts with the contents of `./tasks`; it does not migrate old data automatically.
 
 ## Run without Docker
 
@@ -53,11 +66,27 @@ python -m pip install -r app/requirements.txt
 python -m app.main
 ```
 
-On Windows, use `py -3.12 -m venv .venv` and activate with `.venv\Scripts\Activate.ps1` in PowerShell. Open http://localhost:5151; stop with Ctrl+C. Local task files are created in `tasks/` and ignored by Git. They are separate from Docker's volume.
+On Windows, use `py -3.12 -m venv .venv` and activate with `.venv\Scripts\Activate.ps1` in PowerShell. Open http://localhost:5151; stop with Ctrl+C. Local task files use the same `tasks/` folder as Docker. Run only one app instance against that folder at a time.
 
 ## ARM64 and AMD64 builds
 
-Docker Compose builds for your machine automatically, including Apple Silicon and Intel/AMD. To explicitly build either platform with a compatible Buildx builder:
+By default, Docker builds for the architecture of the Docker host (unless you explicitly select another platform):
+
+- Apple Silicon with local Docker Desktop: **ARM64**.
+- Intel/AMD machines and our Vultr x64 server: **AMD64**.
+
+The same source code and Dockerfile work on both. When we copy the source to Vultr and build there, Docker produces AMD64 automatically. Copying an already-built ARM64 image to an AMD64 server is different; it needs a matching image or emulation.
+
+From the repository root, build for the current Docker host and then start the app:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Or combine both steps with `docker compose up --build -d`.
+
+To explicitly build either platform with a compatible Buildx builder (cross-platform builds require builder support such as Docker Desktop's emulation):
 
 ```bash
 docker buildx build --platform linux/arm64 -t cicd-demo-todo-app:arm64 --load .
