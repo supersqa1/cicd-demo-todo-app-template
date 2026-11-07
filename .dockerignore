@@ -1,6 +1,6 @@
 *
 !Dockerfile
-!requirements.txt
-!app.py
-!templates/
-!templates/**
+!app/
+!app/**
+**/__pycache__/
+**/*.py[cod]
