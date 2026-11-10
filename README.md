@@ -1,6 +1,6 @@
 # CI/CD Demo To-Do App
 
-A small Dockerized Flask app for the SuperSQA CI/CD tutorial series. Create, view, update, and delete tasks while learning how to build a deployment pipeline. This is the starter application; no CI/CD pipeline is included yet.
+A small Dockerized Flask app for the SuperSQA CI/CD tutorial series. Create, view, update, and delete tasks while learning how to build a deployment pipeline. This starter includes unit, integration, and browser regression tests. No CI/CD pipeline is included yet.
 
 ## Start your own repository
 
@@ -18,6 +18,9 @@ app/
   __init__.py         # Python package marker
 Dockerfile            # Application image
 compose.yaml          # Local container and tasks/ bind mount
+tests/                # unit/, integration/, regression/
+requirements-test.txt # Test dependencies
+pytest.ini            # Test defaults and reports
 .dockerignore         # Files excluded from the image build
 .gitignore            # Files excluded from Git
 README.md
@@ -66,7 +69,7 @@ python -m pip install -r app/requirements.txt
 python -m app.main
 ```
 
-On Windows, use `py -3.12 -m venv .venv` and activate with `.venv\Scripts\Activate.ps1` in PowerShell. Open http://localhost:5151; stop with Ctrl+C. Local task files use the same `tasks/` folder as Docker. Run only one app instance against that folder at a time.
+On Windows, use `py -3.12 -m venv .venv` and activate with `.venv\Scripts\activate.bat` in Command Prompt. Open http://localhost:5151; stop with Ctrl+C. Local task files use the same `tasks/` folder as Docker. Run only one app instance against that folder at a time.
 
 ## ARM64 and AMD64 builds
 
@@ -93,9 +96,41 @@ docker buildx build --platform linux/arm64 -t cicd-demo-todo-app:arm64 --load .
 docker buildx build --platform linux/amd64 -t cicd-demo-todo-app:amd64 --load .
 ```
 
+## Tests included
+
+The starter includes **4 unit tests**, **3 integration cases**, and **4 browser regression cases**. Unit tests exercise storage functions; integration tests exercise Flask routes with real temporary files. Backend tests use isolated directories and do not touch your app's tasks.
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows CMD: `py -3.12 -m venv .venv`, then `.venv\Scripts\activate.bat`.
+
+Install the test dependencies (includes Flask) and run backend tests; no running app is needed:
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m pytest tests/unit
+python -m pytest tests/integration
+```
+
+`python -m pytest` runs both backend suites by default. To run browser regression, start the app first, then:
+
+```bash
+python -m playwright install chromium
+python -m pytest tests/regression --base-url http://localhost:5151
+```
+
+Tests run headlessly in Chromium. For staging, replace the URL with `http://SERVER_IP:5151`. Browser tests cover create, status updates, and deletion across reloads; each test cleans up only its own uniquely named tasks. Use local/staging, not production.
+
+Reports from the most recent run: `reports/report.html` and `reports/junit.xml`. Failed browser tests also save screenshots and traces under `reports/playwright/`. These generated files are ignored by Git.
+
 ## Demo scope
 
-Docker runs Gunicorn as a non-root user. The direct Python command runs Flask's development server. This starter has no authentication and is not ready for public hosting: task titles become filenames without validation, duplicate titles overwrite tasks, and multiline descriptions are not handled correctly. These limitations will be addressed before public deployment.
+Docker runs Gunicorn as a non-root user with one worker and four threads, so an idle browser connection does not block every request. The direct Python command runs Flask's development server. This starter has no authentication and is not ready for public hosting: task titles become filenames without validation, duplicate titles overwrite tasks, and multiline descriptions are not handled correctly. These limitations will be addressed before public deployment.
 
 ## Source
 
