@@ -1,5 +1,7 @@
 # CI/CD Demo To-Do App
 
+[Key commands](COMMANDS.md) — local setup, Ubuntu/Docker, tests, SSH, and GitHub environment settings.
+
 A small Dockerized Flask app for the SuperSQA CI/CD tutorial series. Create, view, update, and delete tasks while learning how to build a deployment pipeline. This starter includes unit, integration, and browser regression tests. No CI/CD pipeline is included yet.
 
 ## Start your own repository
